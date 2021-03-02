@@ -26,6 +26,7 @@ var tb;
 
         "dojo/store/Memory",
         "dojo/date/locale",
+        "esri/layers/DataAdapterFeatureLayer",
 
         "dojo/_base/Color",
         "dojo/_base/declare",
@@ -44,7 +45,7 @@ var tb;
           Map, on,  dom, Extent, ArcGISDynamicMapServiceLayer, FeatureLayer, BasemapGallery,
           Scalebar, Legend, PopupMobile, Search, OverviewMap, parser, Draw, Graphic,
           SimpleFillSymbol, SimpleLineSymbol, SimpleMarkerSymbol, Query, IdentifyTask, IdentifyParameters, Popup, InfoTemplate, 
-          Memory, locale,
+          Memory, locale, DataAdapterFeatureLayer,
           Color, declare, array, Grid, Selection,
           TabContainer, ContentPane, BorderContainer, Button, 
           Color, domConstruct,
@@ -243,7 +244,10 @@ var tb;
         on(dojo.byId("progButtonNode"),"click",fQueryEstados);
         
         function fQueryEstados () {
-          var SelectorEstados = dojo.byId("dtb").value;
+          var seleccionsimbolos = new SimpleFillSymbol().setColor(new Color([255,255,0,0.5]));
+          statesLayer.setSelectionSymbol (seleccionsimbolos);
+
+          var SelectorEstados = dojo.byId("dtb1").value;
 
           var queryState = new Query ();
             queryState.where = `state_name = '${SelectorEstados}'`;
