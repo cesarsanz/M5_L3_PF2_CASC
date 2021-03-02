@@ -1,0 +1,17 @@
+Genero el repositorio en GitHub, con el nombre de M5_L3_PF y la ubicación seleccionada.
+Genero dentro del repositorio una carpeta nueva llamada PF_CSC
+Pego la plantilla proporcionada por Esri_Formación
+Ejecuto el index.html para observar su contenido en el Crhome.
+Observo el codigo del index.html y lo modifico según la siguiente secuencia:
+-Genero carpeta JS, donde incluyo un js, llamado map.js. Aquí ordenaré todo el código referente al JS.
+-En el head del html pongo hago referencia al js: <script src="js/map.js"></script>
+-Cargo la capa del servicio de mapas, mediante: "esri/layers/ArcGISDynamicMapServiceLayer", constructor: variable "USAdatos", llamamos al metodo "map.addLayer(USAdatos)"
+-Ejecutamos el html y centramos la extensión de todo el servicio.
+-Obtenemos la extensión deseada en firefox, consola: dojo.toJson(map.extent.toJson())
+-Establezco extensión del mapa con: "esri/geometry/Extent", según la extensión incial del servicio de mapa.xxxxesto se ve mal, hay qeu centrarlo mejor.
+-Establezco transparencia en la capa dinamica (servicio de mapa), mediante las propiedades del constructor "opacity"
+-Ahora introducimos una  "feature layer" del mismo servicio de mapas, pero seleccionando únicamente las ciudades. Para ello añadimos: "esri/layers/FeatureLayer".
+-Incluyo el basemapgallery: "esri/dijit/BasemapGallery". Establezco variable llamada "SelectorMapas", añado un div en el body y modifico el css para incluir su estilo
+-Incluyo la escala, mediante: "esri/dijit/Scalebar", variable "Scala" con información dual y ubicada en la esquina inferior izqueirda
+-Incluyo la legenda, mediante "esri/dijit/Legend"....ME ESTÁ DANDO ERROR, NO APARECE.,MEJOR HACERLO DE LA MANERA QUE ME CORRIGIÓ LA TUTORIA.
+-vOY POR EL VIDOE DEL TEMA 3, 2,1 Y METER EL WIDCHET DE SEARCH
