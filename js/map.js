@@ -18,11 +18,17 @@ var tb;
         "esri/symbols/SimpleFillSymbol",
         "esri/symbols/SimpleLineSymbol",
         "esri/symbols/SimpleMarkerSymbol",
+        
         "esri/tasks/query",
         "esri/tasks/IdentifyTask",
         "esri/tasks/IdentifyParameters",
-        "esri/dijit/Popup",
+        "esri/config",
         "esri/InfoTemplate",
+        "esri/dijit/Popup",
+        "esri/dijit/PopupTemplate",
+        "esri/tasks/GeometryService",
+        "dojo/dom-class",
+        "dojo/_base/lang",
 
         "dojo/store/Memory",
         "dojo/date/locale",
@@ -37,14 +43,16 @@ var tb;
 
         "dijit/layout/TabContainer",
         "dijit/layout/ContentPane",
-        "dijit/layout/BorderContainer", "dijit/form/Button",
+        "dijit/layout/BorderContainer", 
+        "dijit/form/Button",
         "esri/Color",
         "dojo/dom-construct",
         "dojo/domReady!"],
         function(
           Map, on,  dom, Extent, ArcGISDynamicMapServiceLayer, FeatureLayer, BasemapGallery,
           Scalebar, Legend, PopupMobile, Search, OverviewMap, parser, Draw, Graphic,
-          SimpleFillSymbol, SimpleLineSymbol, SimpleMarkerSymbol, Query, IdentifyTask, IdentifyParameters, Popup, InfoTemplate, 
+          SimpleFillSymbol, SimpleLineSymbol, SimpleMarkerSymbol, Query, IdentifyTask, IdentifyParameters,
+          esriConfig,  InfoTemplate, Popup, PopupTemplate, GeometryService, domClass, lang,
           Memory, locale, DataAdapterFeatureLayer,
           Color, declare, array, Grid, Selection,
           TabContainer, ContentPane, BorderContainer, Button, 
@@ -52,7 +60,7 @@ var tb;
           Ready,
         ) {
 
-        //Añadimos variables de extensión para utilizar al crear el mapa
+        //Añadimo variable de extensión para utilizar al crear el mapa
         var extensionnueva = new Extent({
           "xmin": -11535191.501121324,
           "ymin": 3796084.8695277404,
@@ -60,13 +68,19 @@ var tb;
           "ymax": 12958702.8609162215,
           "spatialReference": { "wkid": 102100 }
         });
+        //Añadimos variable de popup para utilizar en el mapa
+        var popup = new Popup({
+          fillSymbol: new SimpleFillSymbol(SimpleFillSymbol.STYLE_SOLID,
+            new SimpleLineSymbol(SimpleLineSymbol.STYLE_SOLID,
+              new Color([255, 0, 0]), 2), new Color([255, 255, 0, 0.25]))
+        }, domConstruct.create("div"));
 
         // Create the map
         var map = new Map("map", {
-        basemap: "topo",
-        zoom: 3,
-        extent : extensionnueva,
-        //infoWindow: popup
+          basemap: "topo",
+          zoom: 3,
+          extent : extensionnueva,
+          infoWindow: popup
         });
 
         // Construct the USA layer
@@ -80,8 +94,13 @@ var tb;
 
         var outFieldsCiudades = ["areaname", "class", "st", "capital"];
 
+        var templateState = new InfoTemplate();
+        templateState.setContent(getTextContent);
+        
         var statesLayer = new FeatureLayer("http://sampleserver6.arcgisonline.com/arcgis/rest/services/USA/MapServer/2", {
-            outFields: ["state_name"]
+          mode: FeatureLayer.MODE_SELECTION,
+          outFields: ["state_name", "pop2000"],
+          infoTemplate: templateState
         });
 
         // Añadir datos al Mapa
@@ -90,6 +109,7 @@ var tb;
           map.reposition();
           map.addLayer (USAdatos);
           map.addLayer(CiudadesUSA);
+          map.disableDoubleClickZoom(); 
         });
 
         // Añadir BasemapGallery
@@ -244,7 +264,10 @@ var tb;
         on(dojo.byId("progButtonNode"),"click",fQueryEstados);
         
         function fQueryEstados () {
-          var seleccionsimbolos = new SimpleFillSymbol().setColor(new Color([255,255,0,0.5]));
+          var seleccionsimbolos = new SimpleMarkerSymbol(SimpleMarkerSymbol.STYLE_CIRCLE, 12,
+            new SimpleLineSymbol(SimpleLineSymbol.STYLE_SOLID, new Color([48, 178, 255, 0.8])));
+          
+          
           statesLayer.setSelectionSymbol (seleccionsimbolos);
 
           var SelectorEstados = dojo.byId("dtb1").value;
@@ -254,59 +277,38 @@ var tb;
             
           statesLayer.selectFeatures(queryState, FeatureLayer.SELECTION_NEW, function(selection){
             var centrarEstados = graphicsUtils.graphicsExtent(selection).getCenter();
-            map.centerAt(centrarEstados);
+            var extentSt = esri.graphicsExtent(selection);
+            map.setExtent(extentSt.getExtent().expand(2));
+            map.centerAndZoom(centrarEstados);
           });
         }
 
 
-        // Añadir Tarea Identify
-        var identifyTask, identifyParams;
-        var IDpop = new Popup ({
-          fillSymbol: new SimpleFillSymbol(SimpleFillSymbol.STYLE_SOLID,
-            new SimpleLineSymbol(SimpleLineSymbol.STYLE_SOLID,
-              new Color([255, 0, 0]), 2), new Color([255, 255, 0, 0.25]))
-        }, domConstruct.create("div"));
+        // Añadir funcion PopUP
+        map.on("dbl-click", function (event) {
+          var querypopUP = new Query();
+          querypopUP.geometry = pointToExtent(map, event.mapPoint, 10);
+          var deferred = statesLayer.selectFeatures(querypopUP,
+            FeatureLayer.SELECTION_NEW);
+          map.infoWindow.setFeatures([deferred]);
+          map.infoWindow.show(event.mapPoint);
+        });
 
-        
-        function mapReady () {
-          map.on("click", executeIdentifyTask);
-          //create identify tasks and setup parameters
-          identifyTask = new IdentifyTask(USAdatos);
-          identifyParams = new IdentifyParameters();
-          identifyParams.tolerance = 3;
-          identifyParams.returnGeometry = true;
-          identifyParams.layerIds = [2];
-          identifyParams.layerOption = IdentifyParameters.LAYER_OPTION_ALL;
-          identifyParams.width = map.width;
-          identifyParams.height = map.height;
+        function getTextContent (graphic) {
+          var attributes = graphic.attributes;
+          var PoblaciondelEstado = attributes.pop2000;
+
+          return  "Población del estado =" + PoblaciondelEstado;
         }
-        function executeIdentifyTask (event) {
-          identifyParams.geometry = event.mapPoint;
-          identifyParams.mapExtent = map.extent;
 
-          var deferred = identifyTask
-            .execute(identifyParams)
-            .addCallback(function (response) {
-              // response is an array of identify result objects
-              // Let's return an array of features.
-              return arrayUtils.map(response, function (result) {
-                var feature = result.feature;
-                var layerName = result.layerName;
-
-                feature.attributes.layerName = layerName;
-                if (layerName === 'States') {
-                  var EstadosTemplate = new PopupTemplate({
-                    title: "{STATE_NAME}",
-                    fieldInfos: [{
-                      POP2000: "POP2000",
-                      st_area: "st_area",
-                      visible: true
-                    }]
-                  })
-                  feature.setInfoTemplate(EstadosTemplate);
-                }
-                return feature;
-              });  
-            });   
-        };
+        function pointToExtent (map, point, toleranceInPixel) {
+          var pixelWidth = map.extent.getWidth() / map.width;
+          var toleranceInMapCoords = toleranceInPixel * pixelWidth;
+          return new Extent(point.x - toleranceInMapCoords,
+                            point.y - toleranceInMapCoords,
+                            point.x + toleranceInMapCoords,
+                            point.y + toleranceInMapCoords,
+                            map.spatialReference);
+        }
+        
       });
