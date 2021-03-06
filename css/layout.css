@@ -71,6 +71,11 @@
         height: 100px;
       }
 
+      #divGrid {
+        height: 100%;
+        text-size-adjust:auto;
+      }
+
       #footer {
         margin: 2px;
         border: solid 2px #224a54;
